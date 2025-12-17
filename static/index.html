@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metro Voronoi Diagrams</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚇 Metro Voronoi Diagrams</h1>
+            <p class="subtitle">Visualize metro station coverage using Voronoi diagrams</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-box">
+                <input
+                    type="text"
+                    id="cityInput"
+                    placeholder="e.g., Rio de Janeiro, Brazil"
+                    autocomplete="off"
+                />
+                <button id="searchBtn" onclick="generateMap()">
+                    <span id="btnText">Generate Map</span>
+                    <span id="btnLoader" class="loader" style="display: none;"></span>
+                </button>
+            </div>
+
+            <div id="message" class="message"></div>
+
+            <div class="popular-cities">
+                <h3>Popular Cities:</h3>
+                <div id="popularCitiesList" class="cities-grid">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="mapContainer" class="map-container" style="display: none;">
+            <div class="map-header">
+                <h2 id="mapTitle"></h2>
+                <button onclick="closeMap()" class="close-btn">✕ Close</button>
+            </div>
+            <iframe id="mapFrame" src="" frameborder="0"></iframe>
+        </div>
+    </div>
+
+    <footer>
+        <p>Data from OpenStreetMap | Voronoi diagrams show the coverage area of each station</p>
+    </footer>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
+

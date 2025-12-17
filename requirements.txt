@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+osmnx
+geopandas
+folium
+shapely
+pydantic
+python-multipart
+
