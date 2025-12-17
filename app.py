@@ -18,6 +18,12 @@ app = FastAPI(
 # Initialize generator
 generator = VoronoiMapGenerator()
 
+# Health check endpoint for Railway
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy", "service": "metro-voronoi-diagrams"}
+
 # Pre-rendered cities (popular ones)
 POPULAR_CITIES = [
     "São Paulo, Brazil",
