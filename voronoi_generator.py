@@ -99,10 +99,18 @@ class VoronoiMapGenerator:
         stations = stations.dropna(subset=["name"])
         stations["linha"] = "unknown"
 
-        print(f"{len(stations)} stations found")
+        print(f"{len(stations)} raw stations found")
 
         if len(stations) == 0:
             raise ValueError(f"No metro stations found for {city}")
+
+        # Merge duplicate stations (same name) into a single point at their centroid
+        # This handles cases like multiple entries for "Lapa" station in São Paulo
+        stations = stations.dissolve(by="name", aggfunc="first")
+        stations = stations.reset_index()
+        stations["geometry"] = stations.geometry.centroid
+
+        print(f"{len(stations)} unique stations after merging duplicates")
 
         return stations
 

@@ -18,11 +18,16 @@ app = FastAPI(
 # Initialize generator
 generator = VoronoiMapGenerator()
 
+# Check if Vue frontend build exists
+VUE_DIST_DIR = "frontend/dist"
+USE_VUE_FRONTEND = os.path.exists(VUE_DIST_DIR)
+
 # Health check endpoint for Railway
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "service": "metro-voronoi-diagrams"}
+    cached_maps = len([f for f in os.listdir(generator.maps_dir) if f.endswith('.html')]) if os.path.exists(generator.maps_dir) else 0
+    return {"status": "healthy", "cached_maps": cached_maps}
 
 # Pre-rendered cities (popular ones)
 POPULAR_CITIES = [
@@ -56,7 +61,9 @@ def save_status(status):
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
-    """Serve the main page"""
+    """Serve the main page - Vue frontend if built, otherwise legacy"""
+    if USE_VUE_FRONTEND:
+        return FileResponse(os.path.join(VUE_DIST_DIR, "index.html"))
     return FileResponse("static/index.html")
 
 
@@ -97,10 +104,11 @@ async def generate_map(request: Request, background_tasks: BackgroundTasks):
         if cached_map and not force_regenerate:
             city_slug = generator._get_city_slug(city)
             return {
+                "success": True,
                 "city": city,
+                "slug": city_slug,
                 "map_url": f"/api/map/{city_slug}",
-                "cached": True,
-                "message": "Map loaded from cache"
+                "cached": True
             }
 
         # Generate new map
@@ -112,10 +120,11 @@ async def generate_map(request: Request, background_tasks: BackgroundTasks):
         save_status(status)
 
         return {
+            "success": True,
             "city": city,
+            "slug": city_slug,
             "map_url": f"/api/map/{city_slug}",
-            "cached": False,
-            "message": "Map generated successfully"
+            "cached": False
         }
 
     except ValueError as e:
@@ -158,6 +167,10 @@ async def prerender_popular_cities(background_tasks: BackgroundTasks):
     return {"message": "Pre-rendering started in background"}
 
 
-# Mount static directory
+# Mount static directories
+if USE_VUE_FRONTEND:
+    # Serve Vue build assets
+    app.mount("/assets", StaticFiles(directory=os.path.join(VUE_DIST_DIR, "assets")), name="assets")
+# Legacy static files (keep for backward compatibility)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
