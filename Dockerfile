@@ -2,9 +2,20 @@
 FROM node:20-alpine AS frontend-builder
 
 WORKDIR /app/frontend
+
+# Copy package files and install dependencies
 COPY frontend/package*.json ./
 RUN npm ci
-COPY frontend/ ./
+
+# Copy all frontend source files
+COPY frontend/src ./src
+COPY frontend/public ./public
+COPY frontend/index.html ./
+COPY frontend/*.json ./
+COPY frontend/*.ts ./
+COPY frontend/vite.config.ts ./
+
+# Build the frontend
 RUN npm run build
 
 # Production stage - use OSGeo image with GDAL pre-installed

@@ -38,16 +38,9 @@ generation_status.json
 .DS_Store
 Thumbs.db
 
-# Frontend source (we only need the build)
-frontend/src/
-frontend/public/
+# Frontend - only exclude what we don't need
 frontend/node_modules/
-frontend/*.json
-frontend/*.ts
-frontend/*.md
+frontend/dist/
 frontend/.vscode/
-
-# Keep only what we need from frontend
-!frontend/package.json
-!frontend/package-lock.json
+frontend/README.md
 
