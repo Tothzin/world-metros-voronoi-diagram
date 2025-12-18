@@ -9,6 +9,9 @@ import folium
 from shapely.ops import voronoi_diagram
 from shapely.strtree import STRtree
 
+# Version for cache invalidation (increment when algorithm changes)
+MAP_VERSION = "v2"  # v2: fixed duplicate station merging
+
 # Paleta de cores para coloração de grafos (distinguíveis e agradáveis)
 VORONOI_COLORS = [
     "#e41a1c",  # vermelho
@@ -106,9 +109,21 @@ class VoronoiMapGenerator:
 
         # Merge duplicate stations (same name) into a single point at their centroid
         # This handles cases like multiple entries for "Lapa" station in São Paulo
+        print(f"Merging duplicate station names...")
         stations = stations.dissolve(by="name", aggfunc="first")
         stations = stations.reset_index()
-        stations["geometry"] = stations.geometry.centroid
+
+        # Ensure all geometries are Points (dissolve might create MultiPoint)
+        # Convert to centroid to get a single point
+        def ensure_point(geom):
+            if geom.geom_type == 'MultiPoint':
+                return geom.centroid
+            elif geom.geom_type == 'Point':
+                return geom
+            else:
+                return geom.centroid
+
+        stations["geometry"] = stations.geometry.apply(ensure_point)
 
         print(f"{len(stations)} unique stations after merging duplicates")
 
@@ -292,7 +307,7 @@ class VoronoiMapGenerator:
             Tuple (file_path, city_slug)
         """
         city_slug = self._get_city_slug(city)
-        output_file = os.path.join(self.maps_dir, f"{city_slug}_voronoi.html")
+        output_file = os.path.join(self.maps_dir, f"{city_slug}_voronoi_{MAP_VERSION}.html")
 
         # Check if already exists in cache
         if os.path.exists(output_file) and not force_regenerate:
@@ -337,7 +352,7 @@ class VoronoiMapGenerator:
     def get_cached_map(self, city: str) -> Optional[str]:
         """Return cached map path, if it exists"""
         city_slug = self._get_city_slug(city)
-        output_file = os.path.join(self.maps_dir, f"{city_slug}_voronoi.html")
+        output_file = os.path.join(self.maps_dir, f"{city_slug}_voronoi_{MAP_VERSION}.html")
 
         if os.path.exists(output_file):
             return output_file
