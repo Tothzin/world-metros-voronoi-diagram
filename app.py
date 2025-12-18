@@ -7,7 +7,7 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from typing import Optional, Dict, Any
 import json
-from voronoi_generator import VoronoiMapGenerator
+from voronoi_generator import VoronoiMapGenerator, MAP_VERSION
 
 app = FastAPI(
     title="Metro Voronoi Diagrams",
@@ -136,7 +136,7 @@ async def generate_map(request: Request, background_tasks: BackgroundTasks):
 @app.get("/api/map/{city_slug}")
 async def get_map(city_slug: str):
     """Return the map HTML file"""
-    map_file = os.path.join(generator.maps_dir, f"{city_slug}_voronoi.html")
+    map_file = os.path.join(generator.maps_dir, f"{city_slug}_voronoi_{MAP_VERSION}.html")
 
     if not os.path.exists(map_file):
         raise HTTPException(status_code=404, detail="Map not found")
