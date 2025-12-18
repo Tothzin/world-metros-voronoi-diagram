@@ -20,7 +20,7 @@ onMounted(async () => {
   try {
     const response = await getPopularCities()
     cities.value = response.cities
-    if (cities.value.length > 0) {
+    if (cities.value.length > 0 && cities.value[0]) {
       selectedCity.value = cities.value[0].name
     }
   } catch (e) {

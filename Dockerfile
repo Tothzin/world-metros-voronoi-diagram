@@ -7,16 +7,19 @@ RUN npm ci
 COPY frontend/ ./
 RUN npm run build
 
-# Production stage
-FROM python:3.11-slim
+# Production stage - use OSGeo image with GDAL pre-installed
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.8.3
 
-# Install system dependencies for geospatial libraries
+# Install Python and pip
 RUN apt-get update && apt-get install -y \
-    libgdal-dev \
-    libgeos-dev \
-    libproj-dev \
-    libspatialindex-dev \
+    python3 \
+    python3-pip \
+    python3-venv \
     && rm -rf /var/lib/apt/lists/*
+
+# Create symlinks for python commands
+RUN ln -sf /usr/bin/python3 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
 
 WORKDIR /app
 

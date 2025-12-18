@@ -174,3 +174,19 @@ if USE_VUE_FRONTEND:
 # Legacy static files (keep for backward compatibility)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+
+@app.get("/", response_class=HTMLResponse)
+async def root():
+    """
+    Serve the main page (Vue frontend if available, otherwise legacy HTML)
+    """
+    if USE_VUE_FRONTEND:
+        index_path = os.path.join(VUE_DIST_DIR, "index.html")
+        if os.path.exists(index_path):
+            with open(index_path, "r", encoding="utf-8") as f:
+                return HTMLResponse(content=f.read())
+
+    # Fallback to legacy static HTML
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
