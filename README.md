@@ -34,7 +34,7 @@ A Voronoi diagram divides a space into regions based on distance to a set of poi
 
 ### Installation
 
-1. Fork the repository
+1. Clone the repository
 2. Install dependencies:
 ```bash
 pip install -r requirements.txt
