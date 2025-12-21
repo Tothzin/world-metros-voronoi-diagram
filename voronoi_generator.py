@@ -293,7 +293,163 @@ class VoronoiMapGenerator:
 
         folium.LayerControl().add_to(m)
 
+        # Add interactive click functionality
+        self._add_click_interactivity(m, stations)
+
         return m
+
+    def _add_click_interactivity(self, m: folium.Map, stations: gpd.GeoDataFrame):
+        """Add click event to show distance to nearest station"""
+        import json
+
+        # Prepare station data for JavaScript
+        stations_data = []
+        for _, row in stations.iterrows():
+            stations_data.append({
+                'name': row['name'],
+                'lat': row.geometry.y,
+                'lng': row.geometry.x
+            })
+
+        # Convert to JSON string for embedding in JavaScript
+        stations_json = json.dumps(stations_data)
+
+        # Get the map variable name from Folium
+        map_id = m.get_name()
+
+        # Add custom JavaScript for click handling
+        click_script = f"""
+        <script>
+        (function() {{
+            // Wait for map to be ready
+            function initClickHandler() {{
+                if (typeof {map_id} === 'undefined') {{
+                    setTimeout(initClickHandler, 100);
+                    return;
+                }}
+
+                console.log('Interactive map loaded! Click anywhere to see distance to nearest station.');
+                var stations = {stations_json};
+                console.log('Loaded ' + stations.length + ' stations');
+                var currentMarker = null;
+                var currentLine = null;
+
+                // Haversine formula to calculate distance in meters
+                function calculateDistance(lat1, lng1, lat2, lng2) {{
+                    var R = 6371000; // Earth radius in meters
+                    var dLat = (lat2 - lat1) * Math.PI / 180;
+                    var dLng = (lng2 - lng1) * Math.PI / 180;
+                    var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                            Math.sin(dLng/2) * Math.sin(dLng/2);
+                    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                    return R * c;
+                }}
+
+                // Find nearest station
+                function findNearestStation(lat, lng) {{
+                    var nearest = null;
+                    var minDistance = Infinity;
+
+                    stations.forEach(function(station) {{
+                        var distance = calculateDistance(lat, lng, station.lat, station.lng);
+                        if (distance < minDistance) {{
+                            minDistance = distance;
+                            nearest = station;
+                        }}
+                    }});
+
+                    return {{
+                        station: nearest,
+                        distance: Math.round(minDistance)
+                    }};
+                }}
+
+                // Handle map click
+                {map_id}.on('click', function(e) {{
+                    var lat = e.latlng.lat;
+                    var lng = e.latlng.lng;
+
+                    // Remove previous marker and line
+                    if (currentMarker) {{
+                        {map_id}.removeLayer(currentMarker);
+                    }}
+                    if (currentLine) {{
+                        {map_id}.removeLayer(currentLine);
+                    }}
+
+                    // Find nearest station
+                    var result = findNearestStation(lat, lng);
+                    var walkingTime = Math.round(result.distance / 80); // ~80m/min walking speed
+
+                    // Add dotted line to nearest station
+                    currentLine = L.polyline(
+                        [[lat, lng], [result.station.lat, result.station.lng]],
+                        {{
+                            color: '#333',
+                            weight: 1.5,
+                            opacity: 0.7,
+                            dashArray: '5, 8',
+                            lineCap: 'round'
+                        }}
+                    ).addTo({map_id});
+
+                    // Add marker at clicked location
+                    currentMarker = L.marker([lat, lng], {{
+                        icon: L.divIcon({{
+                            className: 'custom-marker',
+                            html: '<div style="background: #e74c3c; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 4px rgba(0,0,0,0.5);"></div>',
+                            iconSize: [12, 12],
+                            iconAnchor: [6, 6]
+                        }})
+                    }}).addTo({map_id});
+
+                    // Add popup
+                    var popupContent = `
+                        <div style="font-family: Georgia, serif; min-width: 180px;">
+                            <div style="font-size: 14px; font-weight: bold; margin-bottom: 8px; color: #333;">
+                                Clicked Location
+                            </div>
+                            <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;">
+                            <div style="font-size: 13px; line-height: 1.6;">
+                                <div style="margin-bottom: 4px;">
+                                    <span style="font-weight: bold;">Nearest Station:</span> ${{result.station.name}}
+                                </div>
+                                <div style="margin-bottom: 4px;">
+                                    <span style="font-weight: bold;">Distance:</span> ${{result.distance}}m
+                                </div>
+                                <div>
+                                    <span style="font-weight: bold;">Walking Time:</span> ~${{walkingTime}} min
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    currentMarker.bindPopup(popupContent, {{
+                        maxWidth: 250,
+                        className: 'custom-popup'
+                    }}).openPopup();
+                }});
+            }}
+
+            // Start initialization
+            initClickHandler();
+        }})();
+        </script>
+
+        <style>
+        .custom-popup .leaflet-popup-content-wrapper {{
+            border-radius: 8px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.3);
+        }}
+        .custom-popup .leaflet-popup-content {{
+            margin: 12px;
+        }}
+        </style>
+        """
+
+        # Add the script to the map
+        m.get_root().html.add_child(folium.Element(click_script))
 
     def generate_map(self, city: str, force_regenerate: bool = False) -> Tuple[str, str]:
         """

@@ -81,10 +81,20 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   font-size: 14px;
   cursor: pointer;
-  z-index: 1000;
+  z-index: 1002;
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .error-toast {
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    transform: none;
+    font-size: 13px;
+  }
 }
 
 .error-icon {
